@@ -180,22 +180,22 @@ const panelContent=<>
 </>;
 
 return <div style={{position:"relative",width:"100vw",height:"100vh"}}>
-<div ref={mapEl} style={{position:"absolute",inset:0,zIndex:0}}/>
+<div ref={mapEl} style={{position:"absolute",inset:0}}/>
 
 {wide?
 <>{panelOpen?
-<div style={{position:"fixed",top:16,left:16,bottom:16,width:340,zIndex:10,background:"#fff",borderRadius:16,boxShadow:"0 4px 24px rgba(0,0,0,.15)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+<div style={{position:"fixed",top:16,left:16,bottom:16,width:340,zIndex:1100,background:"#fff",borderRadius:16,boxShadow:"0 4px 24px rgba(0,0,0,.15)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
 <div style={{padding:"14px 16px 8px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <h2 style={{fontSize:"1.1rem",margin:0}}>🐰 Stopp ({trail.length})</h2>
 <button onClick={()=>setPanelOpen(false)} style={{background:"none",border:"none",fontSize:"1.3rem",cursor:"pointer",color:C.text2,padding:"4px 8px",lineHeight:1}}>✕</button>
 </div>
 {panelContent}
 </div>
-:<button onClick={()=>setPanelOpen(true)} style={{position:"fixed",top:16,left:16,zIndex:10,background:"#fff",border:"none",borderRadius:14,boxShadow:"0 4px 16px rgba(0,0,0,.15)",padding:"12px 16px",cursor:"pointer",fontSize:"1rem",fontWeight:600,color:C.text,display:"flex",alignItems:"center",gap:8}}>🐰 Stopp ({trail.length}) <span style={{fontSize:".8rem",color:C.text2}}>Visa</span></button>
+:<button onClick={()=>setPanelOpen(true)} style={{position:"fixed",top:16,left:16,zIndex:1100,background:"#fff",border:"none",borderRadius:14,boxShadow:"0 4px 16px rgba(0,0,0,.15)",padding:"12px 16px",cursor:"pointer",fontSize:"1rem",fontWeight:600,color:C.text,display:"flex",alignItems:"center",gap:8}}>🐰 Stopp ({trail.length}) <span style={{fontSize:".8rem",color:C.text2}}>Visa</span></button>
 }</>
 
 :
-<div ref={sheetRef} style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10,background:"#fff",borderRadius:"20px 20px 0 0",boxShadow:"0 -4px 24px rgba(0,0,0,.12)",maxHeight:sheetH,display:"flex",flexDirection:"column",transition:"max-height .3s ease",overflow:"hidden"}}>
+<div ref={sheetRef} style={{position:"fixed",bottom:0,left:0,right:0,zIndex:1100,background:"#fff",borderRadius:"20px 20px 0 0",boxShadow:"0 -4px 24px rgba(0,0,0,.12)",maxHeight:sheetH,display:"flex",flexDirection:"column",transition:"max-height .3s ease",overflow:"hidden"}}>
 
 <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onClick={()=>setSheet(s=>s==="peek"?"half":"peek")}
 style={{padding:"10px 16px 6px",cursor:"pointer",flexShrink:0}}>
@@ -230,7 +230,7 @@ else{const eOk=c.easy.type&&(c.easy.type==="ordpussel"?c.easy.answer:(c.easy.que
 setTrail(t=>{const n=[...t];n[idx]=c;return n;});close();};
 const fileH=(e,key)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>u(n=>{n[key]=r.result;});r.readAsDataURL(f);};
 
-return <div onClick={e=>e.target===e.currentTarget&&close()} style={{position:"fixed",inset:0,background:"rgba(61,41,82,.45)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center"}}>
+return <div onClick={e=>e.target===e.currentTarget&&close()} style={{position:"fixed",inset:0,background:"rgba(61,41,82,.45)",zIndex:1500,display:"flex",alignItems:"center",justifyContent:"center"}}>
 <div style={{background:"#fff",borderRadius:20,padding:16,width:"92%",maxWidth:520,maxHeight:"82vh",overflowY:"auto",overflowX:"hidden"}}>
 <h3 style={{marginBottom:14}}>{s.isFinale?"⭐ Final":`Stopp ${idx+1}`}</h3>
 <div style={{display:"flex",gap:6,marginBottom:14}}>
@@ -317,12 +317,12 @@ const gpsMsg=geo.err==="denied"?"GPS nekad — använd knappen":"no-geo"?"GPS sa
 
 return <div style={{position:"relative",width:"100vw",height:"100vh"}}>
 <div ref={mapEl} style={{width:"100%",height:"100%"}}/>
-<div style={{position:"fixed",top:16,left:16,background:"#fff",borderRadius:14,padding:"10px 16px",boxShadow:"0 4px 16px rgba(0,0,0,.1)",fontWeight:600,zIndex:20}}>
+<div style={{position:"fixed",top:16,left:16,background:"#fff",borderRadius:14,padding:"10px 16px",boxShadow:"0 4px 16px rgba(0,0,0,.1)",fontWeight:600,zIndex:1100}}>
 Stopp {cur+1} av {trail.length}
 {hasGps&&distToStop!=null&&<div style={{fontSize:".8rem",fontWeight:400,color:C.text2,marginTop:2}}>{fmtD(distToStop)} kvar</div>}
 </div>
-{hasGps&&<button onClick={()=>{if(mapObj.current&&geo.pos)mapObj.current.setView([geo.pos.lat,geo.pos.lng],17);}} style={{position:"fixed",top:16,right:16,zIndex:20,width:44,height:44,borderRadius:12,background:"#fff",border:"none",boxShadow:"0 4px 16px rgba(0,0,0,.1)",cursor:"pointer",fontSize:"1.2rem",display:"flex",alignItems:"center",justifyContent:"center"}}>📍</button>}
-<div style={{position:"fixed",bottom:20,left:16,right:16,zIndex:20,textAlign:"center"}}>
+{hasGps&&<button onClick={()=>{if(mapObj.current&&geo.pos)mapObj.current.setView([geo.pos.lat,geo.pos.lng],17);}} style={{position:"fixed",top:16,right:16,zIndex:1100,width:44,height:44,borderRadius:12,background:"#fff",border:"none",boxShadow:"0 4px 16px rgba(0,0,0,.1)",cursor:"pointer",fontSize:"1.2rem",display:"flex",alignItems:"center",justifyContent:"center"}}>📍</button>}
+<div style={{position:"fixed",bottom:20,left:16,right:16,zIndex:1100,textAlign:"center"}}>
 {gpsMsg&&<div style={{background:"#fff3cd",borderRadius:12,padding:"8px 14px",marginBottom:8,fontSize:".85rem",color:"#856404"}}>{gpsMsg}</div>}
 {(!hasGps||geo.err)&&<button onClick={arrive} style={{...btnP,padding:"14px 28px",marginBottom:10}}>🧪 Simulera ankomst</button>}
 <div style={{background:"#fff",borderRadius:20,padding:"12px 16px",boxShadow:"0 -2px 16px rgba(0,0,0,.06)",fontSize:".95rem",color:C.text2}}>{trail[cur].isFinale?"⭐ Sista stoppet — gå dit!":"🥚 Gå till nästa stopp"}{hasGps&&!geo.err&&distToStop!=null&&distToStop>ARRIVE_RADIUS?` (${fmtD(distToStop)})`:hasGps&&!geo.err?" — Du är nära!":""}</div>
@@ -334,7 +334,7 @@ function ChalScreen({trail,cur,sub,solved,sd,setSd,photos,setPhotos}){
 const stop=trail[cur];
 if(stop.type==="selfie")return <SelfieView stop={stop} cur={cur} total={trail.length} setSd={setSd} setPhotos={setPhotos} done={()=>solved("easy")}/>;
 const isE=sub==="easy";const ch=isE?stop.easy:stop.hard;
-return <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fdf6ff,#e8d5f5)",zIndex:50,display:"flex",flexDirection:"column",alignItems:"center",padding:20,overflowY:"auto"}}>
+return <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fdf6ff,#e8d5f5)",zIndex:1200,display:"flex",flexDirection:"column",alignItems:"center",padding:20,overflowY:"auto"}}>
 <div style={{textAlign:"center",margin:"16px 0 20px"}}><h2 style={{fontSize:"1.4rem",color:C.purple}}>Stopp {cur+1} av {trail.length}</h2>
 <p style={{color:C.text2,marginTop:4}}>{isE?"Första":"Andra"} utmaningen — {ch.type}</p></div>
 <ChalUI key={`${cur}-${sub}`} ch={ch} diff={isE?"easy":"hard"} stop={stop} done={()=>solved(isE?"easy":"hard")}/>
@@ -372,7 +372,7 @@ function SelfieView({stop,cur,total,setSd,setPhotos,done}){
 const[ph,setPh]=useState(null);
 const cap=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>setPh(r.result);r.readAsDataURL(f);};
 const accept=()=>{setSd(d=>{const n=[...d];n[cur]={...n[cur],photo:ph};return n;});setPhotos(p=>[...p,ph]);done();};
-return <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fdf6ff,#e8d5f5)",zIndex:50,display:"flex",flexDirection:"column",alignItems:"center",padding:20}}>
+return <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fdf6ff,#e8d5f5)",zIndex:1200,display:"flex",flexDirection:"column",alignItems:"center",padding:20}}>
 <div style={{textAlign:"center",margin:"16px 0 20px"}}><h2 style={{fontSize:"1.4rem",color:C.purple}}>Stopp {cur+1} av {total}</h2><p style={{color:C.text2}}>📸 Selfie!</p></div>
 <div style={{background:"#fff",borderRadius:20,padding:22,width:"100%",maxWidth:480,textAlign:"center"}}>
 <p style={{fontSize:"1.3rem",marginBottom:20}}>{stop.selfiePrompt||"Ta en gruppbild!"}</p>
@@ -385,7 +385,7 @@ return <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,
 
 function Reward({cur,total,next}){
 const eggs=["🥚","🐣","🐰","🌷","🎉","✨","🌸","🐥"];
-return <div onClick={next} style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fce4ec,#fff3e0,#e8f5e9)",zIndex:80,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+return <div onClick={next} style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fce4ec,#fff3e0,#e8f5e9)",zIndex:1300,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
 <div style={{fontSize:"7rem"}}>{eggs[cur%eggs.length]}</div>
 <div style={{fontSize:"1.8rem",fontWeight:700,color:C.purple,marginTop:12}}>Bra jobbat!</div>
 <div style={{color:C.text2,marginTop:6}}>Stopp {cur+1} avklarat!</div>
@@ -395,13 +395,13 @@ return <div onClick={next} style={{position:"fixed",inset:0,background:"linear-g
 
 function Finale({sd,trail,t0,dist,photos}){
 const[p,setP]=useState("yay");const tt=(Date.now()-t0)/1000;const solved=sd.filter(d=>d.eOk&&d.hOk).length;
-if(p==="yay")return <div onClick={()=>setP("stats")} style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#667eea,#764ba2)",zIndex:90,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+if(p==="yay")return <div onClick={()=>setP("stats")} style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#667eea,#764ba2)",zIndex:1400,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
 <div style={{fontSize:"2.8rem",fontWeight:800,color:"#fff"}}>🎉 GRATTIS! 🎉</div>
 <div style={{fontSize:"4rem",marginTop:12}}>🐣🥚🐰</div>
 <div style={{color:"#fff",fontSize:"1.2rem",marginTop:12}}>Ni klarade hela påskjakten!</div>
 <div style={{color:"rgba(255,255,255,.6)",marginTop:24}}>Tryck för resultat</div>
 </div>;
-  return <div style={{position:"fixed",inset:0,background:C.bg,zIndex:90,overflowY:"auto",padding:24}}>
+  return <div style={{position:"fixed",inset:0,background:C.bg,zIndex:1400,overflowY:"auto",padding:24}}>
     <h1 style={{textAlign:"center",fontSize:"2rem",color:C.purple,marginBottom:20}}>🏆 Påskhjältar!</h1>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,maxWidth:440,margin:"0 auto 20px"}}>
       {[[fmtT(tt),"Total tid"],[fmtD(dist),"Sträcka"],[`${solved}/${trail.length}`,"Klarade"],[`${photos.length}`,"Selfies"]].map(([v,l],i)=><div key={i} style={{background:"#fff",borderRadius:14,padding:16,textAlign:"center",boxShadow:"0 4px 16px rgba(124,92,191,.12)"}}><div style={{fontSize:"1.6rem",fontWeight:800,color:C.purple}}>{v}</div><div style={{fontSize:".85rem",color:C.text2,marginTop:3}}>{l}</div></div>)}
