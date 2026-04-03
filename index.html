@@ -67,6 +67,34 @@ lastPos.current=geo.pos;
 },[geo.pos,mode]);
 
 const startHunt=()=>{setMode("hunt");setCur(0);setSub("easy");setT0(Date.now());setDist(0);setPhotos([]);lastPos.current=null;setSd(trail.map(()=>({eOk:false,hOk:false,t0:null,dt:null,photo:null})));};
+
+const demoHunt=()=>{
+if(!geo.pos)return;
+const{lat,lng}=geo.pos;
+const R=6371e3,r=Math.PI/180;
+const off=(d,bearing)=>{const bR=bearing*r,latR=lat*r,lngR=lng*r,dr=d/R;
+const lat2=Math.asin(Math.sin(latR)*Math.cos(dr)+Math.cos(latR)*Math.sin(dr)*Math.cos(bR));
+const lng2=lngR+Math.atan2(Math.sin(bR)*Math.sin(dr)*Math.cos(latR),Math.cos(dr)-Math.sin(latR)*Math.sin(lat2));
+return{lat:lat2/r,lng:lng2/r};};
+const p1=off(60,0),p2=off(100,90),p3=off(80,180),p4=off(120,270),p5=off(140,45);
+const s1={...mkStop(p1.lat,p1.lng),type:"regular",configured:true,
+easy:{type:"gåta",question:"Vad har öron men kan inte höra?",answer:"en kopp",options:["En kopp","En sten","En boll","Ett ägg"],correct:0},
+hard:{type:"gåta",question:"Vad blir blötare ju mer den torkar?",answer:"en handduk",options:[],correct:0}};
+const s2={...mkStop(p2.lat,p2.lng),type:"regular",configured:true,
+easy:{type:"ordpussel",question:"",answer:"PÅSK",options:["","","",""],correct:0},
+hard:{type:"ordpussel",question:"",answer:"PÅSK",options:["","","",""],correct:0}};
+const s3={...mkStop(p3.lat,p3.lng),type:"regular",configured:true,
+easy:{type:"räkna",question:"Hur mycket är 7 × 8?",answer:"56",options:["42","56","64","48"],correct:1},
+hard:{type:"räkna",question:"Hur mycket är 144 / 12?",answer:"12",options:[],correct:0}};
+const s4={...mkStop(p4.lat,p4.lng),type:"selfie",configured:true,selfiePrompt:"Posera som påskharar! 🐰"};
+const s5={...mkStop(p5.lat,p5.lng,true),type:"regular",configured:true,
+easy:{type:"gåta",question:"Vem gömmer äggen i trädgården?",answer:"påskharen",options:["Tomten","Påskharen","Tandfen","Stansen"],correct:1},
+hard:{type:"gåta",question:"Vad kommer alltid men anländer aldrig?",answer:"imorgon",options:[],correct:0}};
+const t=[s1,s2,s3,s4,s5];
+setTrail(t);
+setMode("hunt");setCur(0);setSub("easy");setT0(Date.now());setDist(0);setPhotos([]);lastPos.current=null;
+setSd(t.map(()=>({eOk:false,hOk:false,t0:null,dt:null,photo:null})));
+};
 const arrive=()=>{setSd(d=>{const n=[...d];n[cur]={...n[cur],t0:Date.now()};return n;});setSub("easy");setMode("challenge");};
 const solved=diff=>{
 if(diff==="easy"){setSd(d=>{const n=[...d];n[cur]={...n[cur],eOk:true};return n;});
@@ -76,7 +104,7 @@ else setSub("hard");
 };
 const next=()=>{if(cur+1>=trail.length)setMode("finale");else{setCur(cur+1);setSub("easy");setMode("hunt");}};
 
-if(mode==="landing")return <Landing go={()=>setMode("setup")}/>;
+if(mode==="landing")return <Landing go={()=>setMode("setup")} demoHunt={demoHunt} geo={geo}/>;
 if(mode==="setup")return <Setup trail={trail} setTrail={setTrail} startHunt={startHunt} cfgIdx={cfgIdx} setCfgIdx={setCfgIdx} geo={geo}/>;
 if(mode==="hunt")return <Hunt trail={trail} cur={cur} arrive={arrive} geo={geo}/>;
 if(mode==="challenge")return <ChalScreen trail={trail} cur={cur} sub={sub} solved={solved} sd={sd} setSd={setSd} photos={photos} setPhotos={setPhotos}/>;
@@ -85,12 +113,13 @@ if(mode==="finale")return <Finale sd={sd} trail={trail} t0={t0} dist={dist} phot
 return null;
 }
 
-function Landing({go}){
+function Landing({go,demoHunt,geo}){
 return <div style={{height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",background:"linear-gradient(135deg,#fdf6ff,#e8d5f5,#fce4ec)",padding:24}}>
 <div style={{fontSize:"5rem",marginBottom:16}}>🐣</div>
 <h1 style={{fontSize:"2.6rem",color:C.text,marginBottom:4}}>Påskjakten</h1>
 <p style={{fontSize:"1.2rem",color:C.text2,marginBottom:36}}>Skapa en påskäggsjakt med kartan!</p>
 <button onClick={go} style={{...btnP,fontSize:"1.3rem",padding:"18px 44px"}}>Ny jakt 🗺️</button>
+<button onClick={demoHunt} disabled={!geo.pos} style={{...btnS,fontSize:"1rem",padding:"14px 32px",marginTop:14,opacity:geo.pos?1:.4}}>🧪 Testjakt{!geo.pos?" (väntar på GPS)":""}</button>
 </div>;
 }
 
