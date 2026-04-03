@@ -73,6 +73,7 @@ const mapEl=useRef(null);const mapObj=useRef(null);const mkrs=useRef([]);
 const[sheet,setSheet]=useState("peek");
 const sheetRef=useRef(null);const dragY=useRef(null);
 const[wide,setWide]=useState(()=>window.innerWidth>=768);
+const[panelOpen,setPanelOpen]=useState(true);
 
 useEffect(()=>{
 const mq=window.matchMedia("(min-width:768px)");
@@ -147,12 +148,17 @@ return <div style={{position:"relative",width:"100vw",height:"100vh"}}>
 <div ref={mapEl} style={{position:"absolute",inset:0,zIndex:0}}/>
 
 {wide?
+<>{panelOpen?
 <div style={{position:"fixed",top:16,left:16,bottom:16,width:340,zIndex:10,background:"#fff",borderRadius:16,boxShadow:"0 4px 24px rgba(0,0,0,.15)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-<div style={{padding:"14px 16px 8px",flexShrink:0}}>
+<div style={{padding:"14px 16px 8px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <h2 style={{fontSize:"1.1rem",margin:0}}>🐰 Stopp ({trail.length})</h2>
+<button onClick={()=>setPanelOpen(false)} style={{background:"none",border:"none",fontSize:"1.3rem",cursor:"pointer",color:C.text2,padding:"4px 8px",lineHeight:1}}>✕</button>
 </div>
 {panelContent}
 </div>
+:<button onClick={()=>setPanelOpen(true)} style={{position:"fixed",top:16,left:16,zIndex:10,background:"#fff",border:"none",borderRadius:14,boxShadow:"0 4px 16px rgba(0,0,0,.15)",padding:"12px 16px",cursor:"pointer",fontSize:"1rem",fontWeight:600,color:C.text,display:"flex",alignItems:"center",gap:8}}>🐰 Stopp ({trail.length}) <span style={{fontSize:".8rem",color:C.text2}}>Visa</span></button>
+}</>
+
 :
 <div ref={sheetRef} style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10,background:"#fff",borderRadius:"20px 20px 0 0",boxShadow:"0 -4px 24px rgba(0,0,0,.12)",maxHeight:sheetH,display:"flex",flexDirection:"column",transition:"max-height .3s ease",overflow:"hidden"}}>
 
