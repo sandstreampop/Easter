@@ -28,6 +28,24 @@ function mkStop(lat,lng,fin=false){return{lat,lng,isFinale:fin,type:"regular",se
 function scrambleW(w){const a=w.split("");for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a.join("")===w&&w.length>1?scrambleW(w):a;}
 function fmtT(s){const m=0|s/60;return m?`${m}m ${0|s%60}s`:`${0|s}s`;}
 function fmtD(m){return m>=1000?`${(m/1000).toFixed(1)} km`:`${Math.round(m)} m`;}
+function haversine(a,b){const R=6371e3,r=Math.PI/180,dLat=(b.lat-a.lat)*r,dLng=(b.lng-a.lng)*r,x=Math.sin(dLat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+function useGeo(){
+const[pos,setPos]=useState(null);
+const[err,setErr]=useState(null);
+const watchId=useRef(null);
+useEffect(()=>{
+if(!navigator.geolocation){setErr("no-geo");return;}
+watchId.current=navigator.geolocation.watchPosition(
+p=>setPos({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),
+e=>setErr(e.code===1?"denied":"error"),
+{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+return()=>{if(watchId.current!=null)navigator.geolocation.clearWatch(watchId.current);};
+},[]);
+return{pos,err};
+}
+
+const ARRIVE_RADIUS=30;
 
 function App(){
 const[mode,setMode]=useState("landing");
@@ -36,11 +54,19 @@ const[cur,setCur]=useState(0);
 const[sub,setSub]=useState("easy");
 const[sd,setSd]=useState([]);
 const[t0,setT0]=useState(null);
-const[dist]=useState(0);
+const[dist,setDist]=useState(0);
 const[photos,setPhotos]=useState([]);
 const[cfgIdx,setCfgIdx]=useState(null);
+const geo=useGeo();
+const lastPos=useRef(null);
 
-const startHunt=()=>{setMode("hunt");setCur(0);setSub("easy");setT0(Date.now());setPhotos([]);setSd(trail.map(()=>({eOk:false,hOk:false,t0:null,dt:null,photo:null})));};
+useEffect(()=>{
+if(mode!=="hunt"||!geo.pos)return;
+if(lastPos.current){const d=haversine(lastPos.current,geo.pos);if(d>2&&d<100)setDist(v=>v+d);}
+lastPos.current=geo.pos;
+},[geo.pos,mode]);
+
+const startHunt=()=>{setMode("hunt");setCur(0);setSub("easy");setT0(Date.now());setDist(0);setPhotos([]);lastPos.current=null;setSd(trail.map(()=>({eOk:false,hOk:false,t0:null,dt:null,photo:null})));};
 const arrive=()=>{setSd(d=>{const n=[...d];n[cur]={...n[cur],t0:Date.now()};return n;});setSub("easy");setMode("challenge");};
 const solved=diff=>{
 if(diff==="easy"){setSd(d=>{const n=[...d];n[cur]={...n[cur],eOk:true};return n;});
@@ -51,8 +77,8 @@ else setSub("hard");
 const next=()=>{if(cur+1>=trail.length)setMode("finale");else{setCur(cur+1);setSub("easy");setMode("hunt");}};
 
 if(mode==="landing")return <Landing go={()=>setMode("setup")}/>;
-if(mode==="setup")return <Setup trail={trail} setTrail={setTrail} startHunt={startHunt} cfgIdx={cfgIdx} setCfgIdx={setCfgIdx}/>;
-if(mode==="hunt")return <Hunt trail={trail} cur={cur} arrive={arrive}/>;
+if(mode==="setup")return <Setup trail={trail} setTrail={setTrail} startHunt={startHunt} cfgIdx={cfgIdx} setCfgIdx={setCfgIdx} geo={geo}/>;
+if(mode==="hunt")return <Hunt trail={trail} cur={cur} arrive={arrive} geo={geo}/>;
 if(mode==="challenge")return <ChalScreen trail={trail} cur={cur} sub={sub} solved={solved} sd={sd} setSd={setSd} photos={photos} setPhotos={setPhotos}/>;
 if(mode==="reward")return <Reward cur={cur} total={trail.length} next={next}/>;
 if(mode==="finale")return <Finale sd={sd} trail={trail} t0={t0} dist={dist} photos={photos}/>;
@@ -68,12 +94,13 @@ return <div style={{height:"100vh",display:"flex",flexDirection:"column",alignIt
 </div>;
 }
 
-function Setup({trail,setTrail,startHunt,cfgIdx,setCfgIdx}){
+function Setup({trail,setTrail,startHunt,cfgIdx,setCfgIdx,geo}){
 const mapEl=useRef(null);const mapObj=useRef(null);const mkrs=useRef([]);
 const[sheet,setSheet]=useState("peek");
 const sheetRef=useRef(null);const dragY=useRef(null);
 const[wide,setWide]=useState(()=>window.innerWidth>=768);
 const[panelOpen,setPanelOpen]=useState(true);
+const centeredOnce=useRef(false);
 
 useEffect(()=>{
 const mq=window.matchMedia("(min-width:768px)");
@@ -84,13 +111,21 @@ return()=>mq.removeEventListener("change",h);
 
 useEffect(()=>{
 if(!mapEl.current||mapObj.current)return;
-const m=L.map(mapEl.current,{zoomControl:false}).setView([63.17,14.64],13);
+const start=geo.pos?[geo.pos.lat,geo.pos.lng]:[63.17,14.64];
+const m=L.map(mapEl.current,{zoomControl:false}).setView(start,geo.pos?16:13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"©OSM",maxZoom:19}).addTo(m);
 L.control.zoom({position:"topright"}).addTo(m);
 mapObj.current=m;
+if(geo.pos)centeredOnce.current=true;
 m.on("click",e=>{window._mc={lat:e.latlng.lat,lng:e.latlng.lng};window.dispatchEvent(new Event("mc"));});
 return()=>{m.remove();mapObj.current=null;};
 },[]);
+
+useEffect(()=>{
+if(!mapObj.current||centeredOnce.current||!geo.pos)return;
+mapObj.current.setView([geo.pos.lat,geo.pos.lng],16);
+centeredOnce.current=true;
+},[geo.pos]);
 
 useEffect(()=>{
 const h=()=>{if(!window._mc)return;const{lat,lng}=window._mc;
@@ -234,31 +269,63 @@ function Opts({opts,cor,set}){return <div style={{marginTop:6}}><label style={{f
 <div onClick={()=>set(opts,i)} style={{width:30,height:30,borderRadius:"50%",border:`2px solid ${cor===i?C.green:"#ccc"}`,background:cor===i?C.green:"#fff",color:cor===i?"#fff":"#ccc",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:".85rem",flexShrink:0}}>✓</div>
 </div>)}</div>;}
 
-function Hunt({trail,cur,arrive}){
+function Hunt({trail,cur,arrive,geo}){
 const mapEl=useRef(null);const mapObj=useRef(null);
+const blueDot=useRef(null);const accCircle=useRef(null);
+const arrivedRef=useRef(false);
+const[distToStop,setDistToStop]=useState(null);
+
+useEffect(()=>{arrivedRef.current=false;},[cur]);
+
 useEffect(()=>{
 if(!mapEl.current||mapObj.current)return;
-const m=L.map(mapEl.current,{zoomControl:false}).setView([trail[0].lat,trail[0].lng],15);
+const start=geo.pos?[geo.pos.lat,geo.pos.lng]:[trail[cur].lat,trail[cur].lng];
+const m=L.map(mapEl.current,{zoomControl:false}).setView(start,16);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(m);
-mapObj.current=m;return()=>{m.remove();mapObj.current=null;};
+mapObj.current=m;return()=>{m.remove();mapObj.current=null;blueDot.current=null;accCircle.current=null;};
 },[]);
+
 useEffect(()=>{
 const m=mapObj.current;if(!m)return;
 m.eachLayer(l=>{if(l instanceof L.Marker)m.removeLayer(l);});
+if(accCircle.current){m.removeLayer(accCircle.current);accCircle.current=null;}
+if(blueDot.current){m.removeLayer(blueDot.current);blueDot.current=null;}
 const pts=[];
 for(let i=0;i<=cur;i++){const s=trail[i];const done=i<cur;const here=i===cur;
 const color=done?"#bbb":s.isFinale?C.yellow:C.pink;const label=done?"✓":s.isFinale?"🥚":String(i+1);const sz=here?40:28;
 const icon=L.divIcon({className:"",html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${here?'1rem':'.8rem'};box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff">${label}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
 L.marker([s.lat,s.lng],{icon,interactive:false}).addTo(m);pts.push([s.lat,s.lng]);}
-if(pts.length>1)m.fitBounds(pts,{padding:[50,50],maxZoom:17});else if(pts.length===1)m.setView(pts[0],16);
-},[cur]);
+if(geo.pos){
+const bIcon=L.divIcon({className:"",html:'<div style="width:18px;height:18px;border-radius:50%;background:#4285f4;border:3px solid #fff;box-shadow:0 2px 8px rgba(66,133,244,.5)"></div>',iconSize:[18,18],iconAnchor:[9,9]});
+blueDot.current=L.marker([geo.pos.lat,geo.pos.lng],{icon:bIcon,interactive:false,zIndexOffset:1000}).addTo(m);
+if(geo.pos.acc&&geo.pos.acc<200)accCircle.current=L.circle([geo.pos.lat,geo.pos.lng],{radius:geo.pos.acc,color:"#4285f4",fillColor:"#4285f4",fillOpacity:.1,weight:1}).addTo(m);
+pts.push([geo.pos.lat,geo.pos.lng]);
+}
+if(pts.length>1)m.fitBounds(pts,{padding:[60,60],maxZoom:17});else if(pts.length===1)m.setView(pts[0],16);
+},[cur,geo.pos]);
+
+useEffect(()=>{
+if(!geo.pos||arrivedRef.current)return;
+const target=trail[cur];
+const d=haversine(geo.pos,{lat:target.lat,lng:target.lng});
+setDistToStop(d);
+if(d<=ARRIVE_RADIUS){arrivedRef.current=true;arrive();}
+},[geo.pos,cur]);
+
+const hasGps=!!geo.pos;
+const gpsMsg=geo.err==="denied"?"GPS nekad — använd knappen":"no-geo"?"GPS saknas — använd knappen":!geo.pos?"Söker GPS...":null;
 
 return <div style={{position:"relative",width:"100vw",height:"100vh"}}>
 <div ref={mapEl} style={{width:"100%",height:"100%"}}/>
-<div style={{position:"fixed",top:16,left:16,background:"#fff",borderRadius:14,padding:"10px 16px",boxShadow:"0 4px 16px rgba(0,0,0,.1)",fontWeight:600,zIndex:20}}>Stopp {cur+1} av {trail.length}</div>
+<div style={{position:"fixed",top:16,left:16,background:"#fff",borderRadius:14,padding:"10px 16px",boxShadow:"0 4px 16px rgba(0,0,0,.1)",fontWeight:600,zIndex:20}}>
+Stopp {cur+1} av {trail.length}
+{hasGps&&distToStop!=null&&<div style={{fontSize:".8rem",fontWeight:400,color:C.text2,marginTop:2}}>{fmtD(distToStop)} kvar</div>}
+</div>
+{hasGps&&<button onClick={()=>{if(mapObj.current&&geo.pos)mapObj.current.setView([geo.pos.lat,geo.pos.lng],17);}} style={{position:"fixed",top:16,right:16,zIndex:20,width:44,height:44,borderRadius:12,background:"#fff",border:"none",boxShadow:"0 4px 16px rgba(0,0,0,.1)",cursor:"pointer",fontSize:"1.2rem",display:"flex",alignItems:"center",justifyContent:"center"}}>📍</button>}
 <div style={{position:"fixed",bottom:20,left:16,right:16,zIndex:20,textAlign:"center"}}>
-<button onClick={arrive} style={{...btnP,padding:"14px 28px",marginBottom:10}}>🧪 Simulera ankomst</button>
-<div style={{background:"#fff",borderRadius:20,padding:"12px 16px",boxShadow:"0 -2px 16px rgba(0,0,0,.06)",fontSize:".95rem",color:C.text2}}>{trail[cur].isFinale?"⭐ Sista stoppet!":"🥚 Gå till nästa stopp"}</div>
+{gpsMsg&&<div style={{background:"#fff3cd",borderRadius:12,padding:"8px 14px",marginBottom:8,fontSize:".85rem",color:"#856404"}}>{gpsMsg}</div>}
+{(!hasGps||geo.err)&&<button onClick={arrive} style={{...btnP,padding:"14px 28px",marginBottom:10}}>🧪 Simulera ankomst</button>}
+<div style={{background:"#fff",borderRadius:20,padding:"12px 16px",boxShadow:"0 -2px 16px rgba(0,0,0,.06)",fontSize:".95rem",color:C.text2}}>{trail[cur].isFinale?"⭐ Sista stoppet — gå dit!":"🥚 Gå till nästa stopp"}{hasGps&&!geo.err&&distToStop!=null&&distToStop>ARRIVE_RADIUS?` (${fmtD(distToStop)})`:hasGps&&!geo.err?" — Du är nära!":""}</div>
 </div>
 </div>;
 }
