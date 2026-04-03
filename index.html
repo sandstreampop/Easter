@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Påskjakten 🐣</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;height:100vh;width:100vw;overflow:hidden}#root{height:100vh}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef}=React;
+const C={purple:"#7c5cbf",purple2:"#a78bfa",green:"#4ecdc4",pink:"#ff6b9d",yellow:"#ffcb6b",bg:"#fdf6ff",bg2:"#f3e8ff",text:"#3d2952",text2:"#6b5580"};
+const btn={display:"inline-flex",alignItems:"center",justifyContent:"center",padding:"14px 28px",border:"none",borderRadius:14,fontSize:"1.05rem",fontWeight:600,cursor:"pointer"};
+const btnP={...btn,background:`linear-gradient(135deg,${C.purple},${C.purple2})`,color:"#fff",boxShadow:"0 4px 16px rgba(124,92,191,.2)"};
+const btnS={...btn,background:"#fff",color:C.purple,border:`2px solid ${C.purple2}`};
+const btnG={...btn,background:`linear-gradient(135deg,${C.green},#2db5a6)`,color:"#fff"};
+const inp={width:"100%",padding:10,border:"2px solid #e8d5f5",borderRadius:10,fontSize:"1rem",fontFamily:"inherit",boxSizing:"border-box"};
+const chip=on=>({padding:"6px 12px",borderRadius:20,border:`2px solid ${on?C.purple:"#e8d5f5"}`,background:on?C.purple:"#fff",color:on?"#fff":C.text,cursor:"pointer",fontSize:".85rem",fontWeight:600});
+
+function mkStop(lat,lng,fin=false){return{lat,lng,isFinale:fin,type:"regular",selfiePrompt:"",configured:false,easy:{type:"",question:"",answer:"",options:["","","",""],correct:0},hard:{type:"",question:"",answer:"",options:["","","",""],correct:0},easyImg:null,hardImg:null,easyAudio:null,hardAudio:null};}
+function scrambleW(w){const a=w.split("");for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a.join("")===w&&w.length>1?scrambleW(w):a;}
+function fmtT(s){const m=0|s/60;return m?`${m}m ${0|s%60}s`:`${0|s}s`;}
+function fmtD(m){return m>=1000?`${(m/1000).toFixed(1)} km`:`${Math.round(m)} m`;}
+
+function App(){
+const[mode,setMode]=useState("landing");
+const[trail,setTrail]=useState([]);
+const[cur,setCur]=useState(0);
+const[sub,setSub]=useState("easy");
+const[sd,setSd]=useState([]);
+const[t0,setT0]=useState(null);
+const[dist]=useState(0);
+const[photos,setPhotos]=useState([]);
+const[cfgIdx,setCfgIdx]=useState(null);
+
+const startHunt=()=>{setMode("hunt");setCur(0);setSub("easy");setT0(Date.now());setPhotos([]);setSd(trail.map(()=>({eOk:false,hOk:false,t0:null,dt:null,photo:null})));};
+const arrive=()=>{setSd(d=>{const n=[...d];n[cur]={...n[cur],t0:Date.now()};return n;});setSub("easy");setMode("challenge");};
+const solved=diff=>{
+if(diff==="easy"){setSd(d=>{const n=[...d];n[cur]={...n[cur],eOk:true};return n;});
+if(trail[cur].type==="selfie"){setSd(d=>{const n=[...d];n[cur]={...n[cur],hOk:true,dt:Date.now()-d[cur].t0};return n;});setMode("reward");}
+else setSub("hard");
+}else{setSd(d=>{const n=[...d];n[cur]={...n[cur],hOk:true,dt:Date.now()-d[cur].t0};return n;});setMode("reward");}
+};
+const next=()=>{if(cur+1>=trail.length)setMode("finale");else{setCur(cur+1);setSub("easy");setMode("hunt");}};
+
+if(mode==="landing")return <Landing go={()=>setMode("setup")}/>;
+if(mode==="setup")return <Setup trail={trail} setTrail={setTrail} startHunt={startHunt} cfgIdx={cfgIdx} setCfgIdx={setCfgIdx}/>;
+if(mode==="hunt")return <Hunt trail={trail} cur={cur} arrive={arrive}/>;
+if(mode==="challenge")return <ChalScreen trail={trail} cur={cur} sub={sub} solved={solved} sd={sd} setSd={setSd} photos={photos} setPhotos={setPhotos}/>;
+if(mode==="reward")return <Reward cur={cur} total={trail.length} next={next}/>;
+if(mode==="finale")return <Finale sd={sd} trail={trail} t0={t0} dist={dist} photos={photos}/>;
+return null;
+}
+
+function Landing({go}){
+return <div style={{height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",background:"linear-gradient(135deg,#fdf6ff,#e8d5f5,#fce4ec)",padding:24}}>
+<div style={{fontSize:"5rem",marginBottom:16}}>🐣</div>
+<h1 style={{fontSize:"2.6rem",color:C.text,marginBottom:4}}>Påskjakten</h1>
+<p style={{fontSize:"1.2rem",color:C.text2,marginBottom:36}}>Skapa en påskäggsjakt med kartan!</p>
+<button onClick={go} style={{...btnP,fontSize:"1.3rem",padding:"18px 44px"}}>Ny jakt 🗺️</button>
+</div>;
+}
+
+function Setup({trail,setTrail,startHunt,cfgIdx,setCfgIdx}){
+const mapEl=useRef(null);const mapObj=useRef(null);const mkrs=useRef([]);
+
+useEffect(()=>{
+if(!mapEl.current||mapObj.current)return;
+const m=L.map(mapEl.current).setView([63.17,14.64],13);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"©OSM",maxZoom:19}).addTo(m);
+mapObj.current=m;
+m.on("click",e=>{window._mc={lat:e.latlng.lat,lng:e.latlng.lng};window.dispatchEvent(new Event("mc"));});
+return()=>{m.remove();mapObj.current=null;};
+},[]);
+
+useEffect(()=>{
+const h=()=>{if(!window._mc)return;const{lat,lng}=window._mc;
+setTrail(t=>{const last=t[t.length-1];
+if(last&&last.isFinale&&!last.lat){const n=[...t];n[n.length-1]={...last,lat,lng};return n;}
+const s=mkStop(lat,lng);
+if(last&&last.isFinale){const n=[...t];n.splice(n.length-1,0,s);return n;}
+return[...t,s];});};
+window.addEventListener("mc",h);return()=>window.removeEventListener("mc",h);
+});
+
+useEffect(()=>{
+const m=mapObj.current;if(!m)return;
+mkrs.current.forEach(x=>m.removeLayer(x));mkrs.current=[];
+trail.forEach((s,i)=>{if(!s.lat)return;
+const color=s.isFinale?C.yellow:s.configured?C.green:C.purple2;const label=s.isFinale?"⭐":String(i+1);
+const icon=L.divIcon({className:"",html:`<div style="width:32px;height:32px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff">${label}</div>`,iconSize:[32,32],iconAnchor:[16,16]});
+const mk=L.marker([s.lat,s.lng],{draggable:true,icon}).addTo(m);
+mk.on("dragend",e=>{const p=e.target.getLatLng();setTrail(t=>{const n=[...t];n[i]={...n[i],lat:p.lat,lng:p.lng};return n;});});
+mkrs.current.push(mk);});
+const pts=trail.filter(s=>s.lat).map(s=>[s.lat,s.lng]);
+if(pts.length>1)m.fitBounds(pts,{padding:[40,40],maxZoom:17});else if(pts.length===1)m.setView(pts[0],16);
+},[trail]);
+
+const hasFin=trail.length>0&&trail[trail.length-1].isFinale;
+const ready=trail.length>=2&&trail.every(s=>s.lat&&s.configured)&&hasFin;
+
+return <div style={{display:"flex",height:"100vh"}}>
+<div style={{flex:1}}><div ref={mapEl} style={{width:"100%",height:"100%"}}/></div>
+<div style={{width:300,background:"#fff",borderLeft:"2px solid #e8d5f5",display:"flex",flexDirection:"column",padding:14}}>
+<h2 style={{fontSize:"1.2rem",marginBottom:8}}>🐰 Stopp</h2>
+<div style={{background:C.bg2,borderRadius:10,padding:10,fontSize:".85rem",color:C.text2,textAlign:"center",marginBottom:10}}>{trail.length===0?"Tryck på kartan":"Tryck stopp för att redigera"}</div>
+<div style={{flex:1,overflowY:"auto",marginBottom:10}}>{trail.map((s,i)=><div key={i} onClick={()=>setCfgIdx(i)} style={{background:C.bg2,borderRadius:10,padding:10,marginBottom:6,cursor:"pointer",border:`2px solid ${s.configured?C.green:"transparent"}`}}>
+<div style={{fontWeight:700}}>{s.isFinale?"⭐ Final":`Stopp ${i+1}`}</div>
+<div style={{fontSize:".8rem",color:C.text2,marginTop:2}}>{s.lat?"📍":"⚠️"} {s.configured?"✅ Klar":"⚠️ Ej klar"}</div>
+</div>)}</div>
+<div style={{borderTop:"2px solid #e8d5f5",paddingTop:10,display:"flex",flexDirection:"column",gap:6}}>
+{!hasFin&&trail.length>0&&<button onClick={()=>setTrail(t=>[...t,mkStop(null,null,true)])} style={{...btnS,padding:"8px 14px",fontSize:".9rem"}}>⭐ Lägg till final</button>}
+{trail.length>0&&<button onClick={()=>setTrail(t=>t.slice(0,-1))} style={{...btn,background:C.pink,color:"#fff",padding:"8px 14px",fontSize:".9rem"}}>Ta bort sista</button>}
+<button disabled={!ready} onClick={startHunt} style={{...btnG,padding:"12px",fontSize:"1rem",opacity:ready?1:.4}}>Starta jakten! 🎉</button>
+</div>
+</div>
+{cfgIdx!==null&&<CfgModal trail={trail} setTrail={setTrail} idx={cfgIdx} close={()=>setCfgIdx(null)}/>}
+</div>;
+}
+
+const TYPES=[{id:"gåta",l:"🔮 Gåta"},{id:"ordpussel",l:"🔤 Ord"},{id:"bildpussel",l:"🖼️ Bild"},{id:"räkna",l:"🔢 Matte"},{id:"ljud",l:"🔊 Ljud"}];
+
+function CfgModal({trail,setTrail,idx,close}){
+const[s,setS]=useState(JSON.parse(JSON.stringify(trail[idx])));
+const u=fn=>{setS(p=>{const n=JSON.parse(JSON.stringify(p));fn(n);return n;});};
+const save=()=>{const c=JSON.parse(JSON.stringify(s));
+if(c.type==="selfie")c.configured=!!c.selfiePrompt;
+else{const eOk=c.easy.type&&(c.easy.type==="ordpussel"?c.easy.answer:(c.easy.question&&c.easy.answer));const hOk=c.hard.type&&(c.hard.type==="ordpussel"?c.hard.answer:(c.hard.question&&c.hard.answer));c.configured=!!(eOk&&hOk);}
+setTrail(t=>{const n=[...t];n[idx]=c;return n;});close();};
+const fileH=(e,key)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>u(n=>{n[key]=r.result;});r.readAsDataURL(f);};
+
+return <div onClick={e=>e.target===e.currentTarget&&close()} style={{position:"fixed",inset:0,background:"rgba(61,41,82,.45)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center"}}>
+<div style={{background:"#fff",borderRadius:20,padding:22,width:"92%",maxWidth:520,maxHeight:"82vh",overflowY:"auto"}}>
+<h3 style={{marginBottom:14}}>{s.isFinale?"⭐ Final":`Stopp ${idx+1}`}</h3>
+<div style={{display:"flex",gap:6,marginBottom:14}}>
+{["regular","selfie"].map(t=><button key={t} onClick={()=>u(n=>{n.type=t;})} style={chip(s.type===t)}>{t==="regular"?"Vanligt":"📸 Selfie"}</button>)}
+</div>
+{s.type==="selfie"?<div><label style={{fontWeight:600,fontSize:".9rem"}}>Instruktion</label><textarea value={s.selfiePrompt||""} onChange={e=>u(n=>{n.selfiePrompt=e.target.value;})} style={{...inp,height:60,marginTop:4}} placeholder="Posera som påskharar!"/></div>
+:<><ChalCfg label="Första utmaningen" ch={s.easy} onChange={c=>u(n=>{n.easy=c;})} diff="easy" fileH={fileH} fKey="easyImg" aKey="easyAudio"/>
+<ChalCfg label="Andra utmaningen" ch={s.hard} onChange={c=>u(n=>{n.hard=c;})} diff="hard" fileH={fileH} fKey="hardImg" aKey="hardAudio"/></>}
+<div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}>
+<button onClick={close} style={{...btnS,padding:"8px 16px",fontSize:".9rem"}}>Avbryt</button>
+<button onClick={save} style={{...btnP,padding:"8px 16px",fontSize:".9rem"}}>Spara ✓</button>
+</div>
+</div>
+</div>;
+}
+
+function ChalCfg({label,ch,onChange,diff,fileH,fKey,aKey}){
+const set=fn=>{const n=JSON.parse(JSON.stringify(ch));fn(n);onChange(n);};
+return <div style={{background:C.bg,borderRadius:12,padding:12,marginBottom:12}}>
+<h4 style={{color:C.purple,marginBottom:8,fontSize:".95rem"}}>{label}</h4>
+<div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>{TYPES.map(t=><button key={t.id} onClick={()=>set(n=>{n.type=t.id;})} style={chip(ch.type===t.id)}>{t.l}</button>)}</div>
+{!ch.type&&<p style={{color:C.text2,fontSize:".85rem"}}>Välj typ</p>}
+{ch.type==="ordpussel"&&<><Fld l="Rätt ord" v={ch.answer} set={v=>set(n=>{n.answer=v;})}/><p style={{fontSize:".8rem",color:C.text2}}>{diff==="easy"?"Tryck bokstäver":"Skriv ordet"}</p></>}
+{["gåta","räkna"].includes(ch.type)&&<><Fld l="Fråga" v={ch.question} set={v=>set(n=>{n.question=v;})} multi/><Fld l="Rätt svar" v={ch.answer} set={v=>set(n=>{n.answer=v;})}/>{diff==="easy"&&<Opts opts={ch.options} cor={ch.correct} set={(o,c)=>set(n=>{n.options=o;n.correct=c;})}/>}</>}
+{ch.type==="bildpussel"&&<><div style={{marginBottom:8}}><label style={{fontWeight:600,fontSize:".85rem"}}>Bild</label><br/><input type="file" accept="image/*" onChange={e=>fileH(e,fKey)}/></div><Fld l="Fråga" v={ch.question} set={v=>set(n=>{n.question=v;})} multi/><Fld l="Rätt svar" v={ch.answer} set={v=>set(n=>{n.answer=v;})}/>{diff==="easy"&&<Opts opts={ch.options} cor={ch.correct} set={(o,c)=>set(n=>{n.options=o;n.correct=c;})}/>}</>}
+{ch.type==="ljud"&&<><div style={{marginBottom:8}}><label style={{fontWeight:600,fontSize:".85rem"}}>Ljud</label><br/><input type="file" accept="audio/*" onChange={e=>fileH(e,aKey)}/></div><Fld l="Fråga" v={ch.question} set={v=>set(n=>{n.question=v;})} multi/><Fld l="Rätt svar" v={ch.answer} set={v=>set(n=>{n.answer=v;})}/>{diff==="easy"&&<Opts opts={ch.options} cor={ch.correct} set={(o,c)=>set(n=>{n.options=o;n.correct=c;})}/>}</>}
+</div>;
+}
+
+function Fld({l,v,set,multi}){return <div style={{marginBottom:8}}><label style={{fontWeight:600,fontSize:".85rem",display:"block",marginBottom:3}}>{l}</label>
+{multi?<textarea value={v||""} onChange={e=>set(e.target.value)} style={{...inp,height:55}} placeholder={l}/>:<input value={v||""} onChange={e=>set(e.target.value)} style={inp} placeholder={l}/>}</div>;}
+
+function Opts({opts,cor,set}){return <div style={{marginTop:6}}><label style={{fontWeight:600,fontSize:".85rem"}}>Alternativ</label>
+{opts.map((o,i)=><div key={i} style={{display:"flex",gap:6,alignItems:"center",marginTop:4}}>
+<input value={o} onChange={e=>{const n=[...opts];n[i]=e.target.value;set(n,cor);}} style={{...inp,flex:1}} placeholder={`Alt ${i+1}`}/>
+<div onClick={()=>set(opts,i)} style={{width:30,height:30,borderRadius:"50%",border:`2px solid ${cor===i?C.green:"#ccc"}`,background:cor===i?C.green:"#fff",color:cor===i?"#fff":"#ccc",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:".85rem",flexShrink:0}}>✓</div>
+</div>)}</div>;}
+
+function Hunt({trail,cur,arrive}){
+const mapEl=useRef(null);const mapObj=useRef(null);
+useEffect(()=>{
+if(!mapEl.current||mapObj.current)return;
+const m=L.map(mapEl.current,{zoomControl:false}).setView([trail[0].lat,trail[0].lng],15);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(m);
+mapObj.current=m;return()=>{m.remove();mapObj.current=null;};
+},[]);
+useEffect(()=>{
+const m=mapObj.current;if(!m)return;
+m.eachLayer(l=>{if(l instanceof L.Marker)m.removeLayer(l);});
+const pts=[];
+for(let i=0;i<=cur;i++){const s=trail[i];const done=i<cur;const here=i===cur;
+const color=done?"#bbb":s.isFinale?C.yellow:C.pink;const label=done?"✓":s.isFinale?"🥚":String(i+1);const sz=here?40:28;
+const icon=L.divIcon({className:"",html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${here?'1rem':'.8rem'};box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff">${label}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+L.marker([s.lat,s.lng],{icon,interactive:false}).addTo(m);pts.push([s.lat,s.lng]);}
+if(pts.length>1)m.fitBounds(pts,{padding:[50,50],maxZoom:17});else if(pts.length===1)m.setView(pts[0],16);
+},[cur]);
+
+return <div style={{position:"relative",width:"100vw",height:"100vh"}}>
+<div ref={mapEl} style={{width:"100%",height:"100%"}}/>
+<div style={{position:"fixed",top:16,left:16,background:"#fff",borderRadius:14,padding:"10px 16px",boxShadow:"0 4px 16px rgba(0,0,0,.1)",fontWeight:600,zIndex:20}}>Stopp {cur+1} av {trail.length}</div>
+<div style={{position:"fixed",bottom:20,left:16,right:16,zIndex:20,textAlign:"center"}}>
+<button onClick={arrive} style={{...btnP,padding:"14px 28px",marginBottom:10}}>🧪 Simulera ankomst</button>
+<div style={{background:"#fff",borderRadius:20,padding:"12px 16px",boxShadow:"0 -2px 16px rgba(0,0,0,.06)",fontSize:".95rem",color:C.text2}}>{trail[cur].isFinale?"⭐ Sista stoppet!":"🥚 Gå till nästa stopp"}</div>
+</div>
+</div>;
+}
+
+function ChalScreen({trail,cur,sub,solved,sd,setSd,photos,setPhotos}){
+const stop=trail[cur];
+if(stop.type==="selfie")return <SelfieView stop={stop} cur={cur} total={trail.length} setSd={setSd} setPhotos={setPhotos} done={()=>solved("easy")}/>;
+const isE=sub==="easy";const ch=isE?stop.easy:stop.hard;
+return <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fdf6ff,#e8d5f5)",zIndex:50,display:"flex",flexDirection:"column",alignItems:"center",padding:20,overflowY:"auto"}}>
+<div style={{textAlign:"center",margin:"16px 0 20px"}}><h2 style={{fontSize:"1.4rem",color:C.purple}}>Stopp {cur+1} av {trail.length}</h2>
+<p style={{color:C.text2,marginTop:4}}>{isE?"Första":"Andra"} utmaningen — {ch.type}</p></div>
+<ChalUI key={`${cur}-${sub}`} ch={ch} diff={isE?"easy":"hard"} stop={stop} done={()=>solved(isE?"easy":"hard")}/>
+</div>;
+}
+
+function ChalUI({ch,diff,stop,done}){
+const[fb,setFb]=useState(null);const[txt,setTxt]=useState("");
+const[sel,setSel]=useState([]);const[usedI,setUsedI]=useState([]);
+const[scr]=useState(()=>ch.type==="ordpussel"?scrambleW(ch.answer.toUpperCase()):[]);
+const ok=()=>{setFb("ok");setTimeout(done,700);};
+const no=()=>{setFb("bad");setTimeout(()=>setFb(null),900);};
+const checkMC=i=>{i===ch.correct?ok():no();};
+const checkTxt=()=>{txt.trim().toLowerCase()===ch.answer.trim().toLowerCase()?ok():no();};
+const ordTap=(i,l)=>{if(usedI.includes(i))return;const ns=[...sel,l],nu=[...usedI,i];setSel(ns);setUsedI(nu);
+if(ns.length===ch.answer.length){if(ns.join("")===ch.answer.toUpperCase())ok();else{setFb("bad");setTimeout(()=>{setSel([]);setUsedI([]);setFb(null);},900);}}};
+const ordRm=i=>{setSel(s=>{const n=[...s];n.splice(i,1);return n;});setUsedI(u=>{const n=[...u];n.splice(i,1);return n;});};
+const imgK=diff==="easy"?"easyImg":"hardImg";const audK=diff==="easy"?"easyAudio":"hardAudio";
+
+return <div style={{background:"#fff",borderRadius:20,padding:22,width:"100%",maxWidth:480,boxShadow:"0 4px 20px rgba(124,92,191,.15)"}}>
+{ch.type==="bildpussel"&&stop[imgK]&&<img src={stop[imgK]} style={{width:"100%",maxHeight:200,objectFit:"contain",borderRadius:12,marginBottom:12}}/>}
+{ch.type==="ljud"&&stop[audK]&&<div style={{textAlign:"center",marginBottom:12}}><button onClick={()=>new Audio(stop[audK]).play()} style={{...btnS,padding:"8px 16px",fontSize:".9rem"}}>🔊 Spela ljud</button></div>}
+{ch.question&&<p style={{fontSize:"1.1rem",marginBottom:14,lineHeight:1.5}}>{ch.question}</p>}
+{diff==="easy"&&ch.type==="ordpussel"&&<>
+<div style={{display:"flex",gap:5,justifyContent:"center",marginBottom:14,flexWrap:"wrap"}}>{ch.answer.split("").map((_,i)=><div key={i} onClick={()=>ordRm(i)} style={{width:40,height:44,borderRadius:8,background:C.bg2,border:`2px dashed ${C.purple2}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.2rem",fontWeight:700,color:C.purple,cursor:"pointer"}}>{sel[i]||""}</div>)}</div>
+<div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center"}}>{scr.map((l,i)=><button key={i} disabled={usedI.includes(i)} onClick={()=>ordTap(i,l)} style={{width:44,height:44,borderRadius:10,border:`2px solid ${C.purple2}`,background:usedI.includes(i)?"#eee":"#fff",opacity:usedI.includes(i)?.3:1,fontSize:"1.2rem",fontWeight:700,cursor:"pointer"}}>{l}</button>)}</div></>}
+{diff==="hard"&&ch.type==="ordpussel"&&<><p style={{marginBottom:10}}>Bokstäver: <strong>{scr.join("")}</strong></p><div style={{display:"flex",gap:8}}><input value={txt} onChange={e=>setTxt(e.target.value)} style={{...inp,flex:1}} placeholder="Skriv ordet..."/><button onClick={checkTxt} style={{...btnP,padding:"10px 16px",fontSize:".9rem"}}>Svara</button></div></>}
+{diff==="easy"&&ch.type!=="ordpussel"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>{ch.options.filter(Boolean).map((o,i)=><button key={i} onClick={()=>checkMC(i)} style={{padding:14,border:`2px solid ${fb==="ok"&&i===ch.correct?C.green:"#e8d5f5"}`,borderRadius:12,fontSize:"1.05rem",textAlign:"center",cursor:"pointer",background:fb==="ok"&&i===ch.correct?"#d4edda":"#fff"}}>{o}</button>)}</div>}
+{diff==="hard"&&ch.type!=="ordpussel"&&<div style={{display:"flex",gap:8}}><input value={txt} onChange={e=>setTxt(e.target.value)} style={{...inp,flex:1}} placeholder="Skriv svar..."/><button onClick={checkTxt} style={{...btnP,padding:"10px 16px",fontSize:".9rem"}}>Svara</button></div>}
+{fb&&<div style={{textAlign:"center",padding:10,borderRadius:10,marginTop:10,fontWeight:600,background:fb==="ok"?"#d4edda":"#ffeeba",color:fb==="ok"?"#155724":"#856404"}}>{fb==="ok"?"🎉 Rätt!":"🤔 Försök igen!"}</div>}
+</div>;
+}
+
+function SelfieView({stop,cur,total,setSd,setPhotos,done}){
+const[ph,setPh]=useState(null);
+const cap=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>setPh(r.result);r.readAsDataURL(f);};
+const accept=()=>{setSd(d=>{const n=[...d];n[cur]={...n[cur],photo:ph};return n;});setPhotos(p=>[...p,ph]);done();};
+return <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fdf6ff,#e8d5f5)",zIndex:50,display:"flex",flexDirection:"column",alignItems:"center",padding:20}}>
+<div style={{textAlign:"center",margin:"16px 0 20px"}}><h2 style={{fontSize:"1.4rem",color:C.purple}}>Stopp {cur+1} av {total}</h2><p style={{color:C.text2}}>📸 Selfie!</p></div>
+<div style={{background:"#fff",borderRadius:20,padding:22,width:"100%",maxWidth:480,textAlign:"center"}}>
+<p style={{fontSize:"1.3rem",marginBottom:20}}>{stop.selfiePrompt||"Ta en gruppbild!"}</p>
+{ph&&<img src={ph} style={{width:"100%",maxHeight:260,objectFit:"cover",borderRadius:14,marginBottom:14}}/>}
+{!ph?<label style={{...btnP,cursor:"pointer"}}>📷 Ta bild<input type="file" accept="image/*" capture="user" style={{display:"none"}} onChange={cap}/></label>
+:<button onClick={accept} style={btnG}>Bra bild! ✓</button>}
+</div>
+</div>;
+}
+
+function Reward({cur,total,next}){
+const eggs=["🥚","🐣","🐰","🌷","🎉","✨","🌸","🐥"];
+return <div onClick={next} style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#fce4ec,#fff3e0,#e8f5e9)",zIndex:80,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+<div style={{fontSize:"7rem"}}>{eggs[cur%eggs.length]}</div>
+<div style={{fontSize:"1.8rem",fontWeight:700,color:C.purple,marginTop:12}}>Bra jobbat!</div>
+<div style={{color:C.text2,marginTop:6}}>Stopp {cur+1} avklarat!</div>
+<div style={{color:C.text2,marginTop:28,opacity:.6}}>Tryck för att fortsätta</div>
+</div>;
+}
+
+function Finale({sd,trail,t0,dist,photos}){
+const[p,setP]=useState("yay");const tt=(Date.now()-t0)/1000;const solved=sd.filter(d=>d.eOk&&d.hOk).length;
+if(p==="yay")return <div onClick={()=>setP("stats")} style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#667eea,#764ba2)",zIndex:90,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+<div style={{fontSize:"2.8rem",fontWeight:800,color:"#fff"}}>🎉 GRATTIS! 🎉</div>
+<div style={{fontSize:"4rem",marginTop:12}}>🐣🥚🐰</div>
+<div style={{color:"#fff",fontSize:"1.2rem",marginTop:12}}>Ni klarade hela påskjakten!</div>
+<div style={{color:"rgba(255,255,255,.6)",marginTop:24}}>Tryck för resultat</div>
+</div>;
+  return <div style={{position:"fixed",inset:0,background:C.bg,zIndex:90,overflowY:"auto",padding:24}}>
+    <h1 style={{textAlign:"center",fontSize:"2rem",color:C.purple,marginBottom:20}}>🏆 Påskhjältar!</h1>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,maxWidth:440,margin:"0 auto 20px"}}>
+      {[[fmtT(tt),"Total tid"],[fmtD(dist),"Sträcka"],[`${solved}/${trail.length}`,"Klarade"],[`${photos.length}`,"Selfies"]].map(([v,l],i)=><div key={i} style={{background:"#fff",borderRadius:14,padding:16,textAlign:"center",boxShadow:"0 4px 16px rgba(124,92,191,.12)"}}><div style={{fontSize:"1.6rem",fontWeight:800,color:C.purple}}>{v}</div><div style={{fontSize:".85rem",color:C.text2,marginTop:3}}>{l}</div></div>)}
+    </div>
+    <div style={{maxWidth:440,margin:"0 auto 20px"}}><h3 style={{marginBottom:8}}>⏱️ Tid per stopp</h3>
+      {trail.map((s,i)=><div key={i} style={{background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>{s.isFinale?"⭐ Final":`Stopp ${i+1}`}</span><span>{sd[i]?.dt?fmtT(sd[i].dt/1000):"—"}</span></div>)}</div>
+    {photos.length>0&&<div style={{maxWidth:440,margin:"0 auto"}}><h3 style={{marginBottom:8}}>📸 Minnen</h3>{photos.map((ph,i)=><img key={i} src={ph} style={{width:"100%",borderRadius:14,marginBottom:10}}/>)}</div>}
+  </div>;
+}
+
+ReactDOM.render(<App/>,document.getElementById("root"));
+</script>
+</body>
+</html>
