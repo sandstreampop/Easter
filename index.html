@@ -22,7 +22,7 @@ const btnP={...btn,background:`linear-gradient(135deg,${C.purple},${C.purple2})`
 const btnS={...btn,background:"#fff",color:C.purple,border:`2px solid ${C.purple2}`};
 const btnG={...btn,background:`linear-gradient(135deg,${C.green},#2db5a6)`,color:"#fff"};
 const inp={width:"100%",padding:10,border:"2px solid #e8d5f5",borderRadius:10,fontSize:"1rem",fontFamily:"inherit",boxSizing:"border-box"};
-const chip=on=>({padding:"6px 12px",borderRadius:20,border:`2px solid ${on?C.purple:"#e8d5f5"}`,background:on?C.purple:"#fff",color:on?"#fff":C.text,cursor:"pointer",fontSize:".85rem",fontWeight:600});
+const chip=on=>({padding:"6px 12px",borderRadius:20,border:`2px solid ${on?C.purple:"#e8d5f5"}`,background:on?C.purple:"#fff",color:on?"#fff":C.text,cursor:"pointer",fontSize:".82rem",fontWeight:600,whiteSpace:"nowrap",minWidth:0,flexShrink:0});
 
 function mkStop(lat,lng,fin=false){return{lat,lng,isFinale:fin,type:"regular",selfiePrompt:"",configured:false,easy:{type:"",question:"",answer:"",options:["","","",""],correct:0},hard:{type:"",question:"",answer:"",options:["","","",""],correct:0},easyImg:null,hardImg:null,easyAudio:null,hardAudio:null};}
 function scrambleW(w){const a=w.split("");for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a.join("")===w&&w.length>1?scrambleW(w):a;}
@@ -70,11 +70,14 @@ return <div style={{height:"100vh",display:"flex",flexDirection:"column",alignIt
 
 function Setup({trail,setTrail,startHunt,cfgIdx,setCfgIdx}){
 const mapEl=useRef(null);const mapObj=useRef(null);const mkrs=useRef([]);
+const[sheet,setSheet]=useState("peek");
+const sheetRef=useRef(null);const dragY=useRef(null);
 
 useEffect(()=>{
 if(!mapEl.current||mapObj.current)return;
-const m=L.map(mapEl.current).setView([63.17,14.64],13);
+const m=L.map(mapEl.current,{zoomControl:false}).setView([63.17,14.64],13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"©OSM",maxZoom:19}).addTo(m);
+L.control.zoom({position:"topright"}).addTo(m);
 mapObj.current=m;
 m.on("click",e=>{window._mc={lat:e.latlng.lat,lng:e.latlng.lng};window.dispatchEvent(new Event("mc"));});
 return()=>{m.remove();mapObj.current=null;};
@@ -101,26 +104,51 @@ mk.on("dragend",e=>{const p=e.target.getLatLng();setTrail(t=>{const n=[...t];n[i
 mkrs.current.push(mk);});
 const pts=trail.filter(s=>s.lat).map(s=>[s.lat,s.lng]);
 if(pts.length>1)m.fitBounds(pts,{padding:[40,40],maxZoom:17});else if(pts.length===1)m.setView(pts[0],16);
+setTimeout(()=>{if(mapObj.current)mapObj.current.invalidateSize();},100);
 },[trail]);
 
 const hasFin=trail.length>0&&trail[trail.length-1].isFinale;
 const ready=trail.length>=2&&trail.every(s=>s.lat&&s.configured)&&hasFin;
 
-return <div style={{display:"flex",height:"100vh"}}>
-<div style={{flex:1}}><div ref={mapEl} style={{width:"100%",height:"100%"}}/></div>
-<div style={{width:300,background:"#fff",borderLeft:"2px solid #e8d5f5",display:"flex",flexDirection:"column",padding:14}}>
-<h2 style={{fontSize:"1.2rem",marginBottom:8}}>🐰 Stopp</h2>
-<div style={{background:C.bg2,borderRadius:10,padding:10,fontSize:".85rem",color:C.text2,textAlign:"center",marginBottom:10}}>{trail.length===0?"Tryck på kartan":"Tryck stopp för att redigera"}</div>
-<div style={{flex:1,overflowY:"auto",marginBottom:10}}>{trail.map((s,i)=><div key={i} onClick={()=>setCfgIdx(i)} style={{background:C.bg2,borderRadius:10,padding:10,marginBottom:6,cursor:"pointer",border:`2px solid ${s.configured?C.green:"transparent"}`}}>
+const sheetH=sheet==="peek"?"auto":sheet==="half"?"50vh":"85vh";
+
+const onTouchStart=e=>{dragY.current=e.touches[0].clientY;};
+const onTouchEnd=e=>{
+if(dragY.current===null)return;
+const dy=e.changedTouches[0].clientY-dragY.current;dragY.current=null;
+if(dy<-40){setSheet(s=>s==="peek"?"half":s==="half"?"full":"full");}
+else if(dy>40){setSheet(s=>s==="full"?"half":s==="half"?"peek":"peek");}
+};
+
+return <div style={{position:"relative",width:"100vw",height:"100vh"}}>
+<div ref={mapEl} style={{position:"absolute",inset:0,zIndex:0}}/>
+
+<div ref={sheetRef} style={{position:"fixed",bottom:0,left:0,right:0,zIndex:10,background:"#fff",borderRadius:"20px 20px 0 0",boxShadow:"0 -4px 24px rgba(0,0,0,.12)",maxHeight:sheetH,display:"flex",flexDirection:"column",transition:"max-height .3s ease",overflow:"hidden"}}>
+
+<div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onClick={()=>setSheet(s=>s==="peek"?"half":"peek")}
+style={{padding:"10px 16px 6px",cursor:"pointer",flexShrink:0}}>
+<div style={{width:36,height:4,borderRadius:2,background:"#d0c0e0",margin:"0 auto 8px"}}/>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+<h2 style={{fontSize:"1.1rem",margin:0}}>🐰 Stopp ({trail.length})</h2>
+<span style={{fontSize:".8rem",color:C.text2}}>{sheet==="peek"?"Svep upp ↑":"Svep ner ↓"}</span>
+</div>
+</div>
+
+{sheet!=="peek"&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 16px 10px",WebkitOverflowScrolling:"touch"}}>
+<div style={{background:C.bg2,borderRadius:10,padding:10,fontSize:".85rem",color:C.text2,textAlign:"center",marginBottom:10}}>{trail.length===0?"Tryck på kartan för att lägga till stopp":"Tryck på ett stopp för att redigera"}</div>
+{trail.map((s,i)=><div key={i} onClick={()=>setCfgIdx(i)} style={{background:C.bg2,borderRadius:10,padding:10,marginBottom:6,cursor:"pointer",border:`2px solid ${s.configured?C.green:"transparent"}`}}>
 <div style={{fontWeight:700}}>{s.isFinale?"⭐ Final":`Stopp ${i+1}`}</div>
 <div style={{fontSize:".8rem",color:C.text2,marginTop:2}}>{s.lat?"📍":"⚠️"} {s.configured?"✅ Klar":"⚠️ Ej klar"}</div>
-</div>)}</div>
-<div style={{borderTop:"2px solid #e8d5f5",paddingTop:10,display:"flex",flexDirection:"column",gap:6}}>
-{!hasFin&&trail.length>0&&<button onClick={()=>setTrail(t=>[...t,mkStop(null,null,true)])} style={{...btnS,padding:"8px 14px",fontSize:".9rem"}}>⭐ Lägg till final</button>}
-{trail.length>0&&<button onClick={()=>setTrail(t=>t.slice(0,-1))} style={{...btn,background:C.pink,color:"#fff",padding:"8px 14px",fontSize:".9rem"}}>Ta bort sista</button>}
-<button disabled={!ready} onClick={startHunt} style={{...btnG,padding:"12px",fontSize:"1rem",opacity:ready?1:.4}}>Starta jakten! 🎉</button>
+</div>)}
+</div>}
+
+<div style={{borderTop:"2px solid #e8d5f5",padding:"10px 16px",paddingBottom:"max(10px, env(safe-area-inset-bottom))",display:"flex",flexWrap:"wrap",gap:6,flexShrink:0}}>
+{!hasFin&&trail.length>0&&<button onClick={()=>setTrail(t=>[...t,mkStop(null,null,true)])} style={{...btnS,padding:"8px 14px",fontSize:".85rem",flex:"1 1 auto",minWidth:0}}>⭐ Final</button>}
+{trail.length>0&&<button onClick={()=>setTrail(t=>t.slice(0,-1))} style={{...btn,background:C.pink,color:"#fff",padding:"8px 14px",fontSize:".85rem",flex:"0 1 auto",minWidth:0}}>✕ Ta bort</button>}
+<button disabled={!ready} onClick={startHunt} style={{...btnG,padding:"10px 16px",fontSize:".95rem",opacity:ready?1:.4,flex:"1 1 100%",minWidth:0}}>Starta jakten! 🎉</button>
 </div>
 </div>
+
 {cfgIdx!==null&&<CfgModal trail={trail} setTrail={setTrail} idx={cfgIdx} close={()=>setCfgIdx(null)}/>}
 </div>;
 }
@@ -137,7 +165,7 @@ setTrail(t=>{const n=[...t];n[idx]=c;return n;});close();};
 const fileH=(e,key)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>u(n=>{n[key]=r.result;});r.readAsDataURL(f);};
 
 return <div onClick={e=>e.target===e.currentTarget&&close()} style={{position:"fixed",inset:0,background:"rgba(61,41,82,.45)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center"}}>
-<div style={{background:"#fff",borderRadius:20,padding:22,width:"92%",maxWidth:520,maxHeight:"82vh",overflowY:"auto"}}>
+<div style={{background:"#fff",borderRadius:20,padding:16,width:"92%",maxWidth:520,maxHeight:"82vh",overflowY:"auto",overflowX:"hidden"}}>
 <h3 style={{marginBottom:14}}>{s.isFinale?"⭐ Final":`Stopp ${idx+1}`}</h3>
 <div style={{display:"flex",gap:6,marginBottom:14}}>
 {["regular","selfie"].map(t=><button key={t} onClick={()=>u(n=>{n.type=t;})} style={chip(s.type===t)}>{t==="regular"?"Vanligt":"📸 Selfie"}</button>)}
